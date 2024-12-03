@@ -68,7 +68,7 @@
  * @return a two-dimensional array containing the data, with the first row containing headers
  **/
 function ImportJSON(url, query, parseOptions) {
-  return ImportJSONAdvanced(url, null, query, parseOptions, includeXPath_, defaultTransform_);
+  return ImportJSONAdvanced(url, null, query, parseOptions, includeXPath_, defaultTransform_, defaultFilter_);
 }
 
 /**
@@ -132,7 +132,7 @@ function ImportJSONViaPost(url, payload, fetchOptions, query, parseOptions) {
   convertToBool_(postOptions, "followRedirects");
   convertToBool_(postOptions, "muteHttpExceptions");
   
-  return ImportJSONAdvanced(url, postOptions, query, parseOptions, includeXPath_, defaultTransform_);
+  return ImportJSONAdvanced(url, postOptions, query, parseOptions, includeXPath_, defaultTransform_, defaultFilter_);
 }
 
 /**
@@ -172,7 +172,7 @@ function ImportJSONFromSheet(sheetName, query, options) {
 
   var object = getDataFromNamedSheet_(sheetName);
   
-  return parseJSONObject_(object, query, options, includeXPath_, defaultTransform_);
+  return parseJSONObject_(object, query, options, includeXPath_, defaultTransform_, defaultFilter_);
 }
 
 
@@ -216,11 +216,11 @@ function ImportJSONFromSheet(sheetName, query, options) {
  * @return a two-dimensional array containing the data, with the first row containing headers
  * @customfunction
  **/
-function ImportJSONAdvanced(url, fetchOptions, query, parseOptions, includeFunc, transformFunc) {
+function ImportJSONAdvanced(url, fetchOptions, query, parseOptions, includeFunc, transformFunc, filterFunc) {
   var jsondata = UrlFetchApp.fetch(url, fetchOptions);
   var object   = JSON.parse(jsondata.getContentText());
   
-  return parseJSONObject_(object, query, parseOptions, includeFunc, transformFunc);
+  return parseJSONObject_(object, query, parseOptions, includeFunc, transformFunc, filterFunc);
 }
 
 /**
@@ -249,7 +249,7 @@ function ImportJSONAdvanced(url, fetchOptions, query, parseOptions, includeFunc,
 function ImportJSONBasicAuth(url, username, password, query, parseOptions) {
   var encodedAuthInformation = Utilities.base64Encode(username + ":" + password);
   var header = {headers: {Authorization: "Basic " + encodedAuthInformation}};
-  return ImportJSONAdvanced(url, header, query, parseOptions, includeXPath_, defaultTransform_);
+  return ImportJSONAdvanced(url, header, query, parseOptions, includeXPath_, defaultTransform_, defaultFilter_);
 }
 
 /** 
@@ -320,7 +320,7 @@ function AddOAuthService__(name, accessTokenUrl, requestTokenUrl, authorizationU
 /** 
  * Parses a JSON object and returns a two-dimensional array containing the data of that object.
  */
-function parseJSONObject_(object, query, options, includeFunc, transformFunc) {
+function parseJSONObject_(object, query, options, includeFunc, transformFunc, filterFunc) {
   var headers = new Array();
   var data    = new Array();
   var depths  = new Array();
@@ -345,6 +345,7 @@ function parseJSONObject_(object, query, options, includeFunc, transformFunc) {
   parseData_(headers, data, depths, "", {rowIndex: 1, depth: 0}, object, query, options, includeFunc);
   parseHeaders_(headers, data);
   transformData_(data, depths, options, transformFunc);
+  data = data.filter((e, i, arr) => filterFunc(data, depths, i, options))
   
   return hasOption_(options, "noHeaders") ? (data.length > 1 ? data.slice(1) : new Array()) : data;
 }
@@ -530,6 +531,15 @@ function defaultTransform_(data, depths, row, column, options) {
   if (hasOption_(options, "debugLocation")) {
     data[row][column] = "[" + row + "," + column + "]" + data[row][column];
   }
+}
+
+function defaultFilter_(data, depths, row, options) {
+  if (row == 0 || hasOption_(options, "noInherit")) {
+    return true;
+  }
+  var depth = depths[row];
+  var isLeafNode = depth > (depths[row + 1] || 0);
+  return isLeafNode;
 }
 
 /** 
