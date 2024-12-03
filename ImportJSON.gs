@@ -323,7 +323,8 @@ function AddOAuthService__(name, accessTokenUrl, requestTokenUrl, authorizationU
 function parseJSONObject_(object, query, options, includeFunc, transformFunc) {
   var headers = new Array();
   var data    = new Array();
-  
+  var depths  = new Array();
+
   if (query && !Array.isArray(query) && query.toString().indexOf(",") != -1) {
     query = query.toString().split(",");
   }
@@ -340,10 +341,10 @@ function parseJSONObject_(object, query, options, includeFunc, transformFunc) {
   if (options) {
     options = options.toString().split(",");
   }
-    
-  parseData_(headers, data, "", {rowIndex: 1}, object, query, options, includeFunc);
+  
+  parseData_(headers, data, depths, "", {rowIndex: 1, depth: 0}, object, query, options, includeFunc);
   parseHeaders_(headers, data);
-  transformData_(data, options, transformFunc);
+  transformData_(data, depths, options, transformFunc);
   
   return hasOption_(options, "noHeaders") ? (data.length > 1 ? data.slice(1) : new Array()) : data;
 }
@@ -365,22 +366,25 @@ function parseJSONObject_(object, query, options, includeFunc, transformFunc) {
  *
  * If the value is a scalar, the value is inserted directly into the data array.
  */
-function parseData_(headers, data, path, state, value, query, options, includeFunc) {
+function parseData_(headers, data, depths, path, state, value, query, options, includeFunc) {
   var dataInserted = false;
 
   if (Array.isArray(value) && isObjectArray_(value)) {
+    state.depth++;
     for (var i = 0; i < value.length; i++) {
-      if (parseData_(headers, data, path, state, value[i], query, options, includeFunc)) {
+      if (parseData_(headers, data, depths, path, state, value[i], query, options, includeFunc)) {
         dataInserted = true;
 
         if (data[state.rowIndex]) {
           state.rowIndex++;
+          depths[state.rowIndex] = state.depth;
         }
       }
     }
+    state.depth--;
   } else if (isObject_(value)) {
     for (key in value) {
-      if (parseData_(headers, data, path + "/" + key, state, value[key], query, options, includeFunc)) {
+      if (parseData_(headers, data, depths, path + "/" + key, state, value[key], query, options, includeFunc)) {
         dataInserted = true; 
       }
     }
@@ -422,10 +426,10 @@ function parseHeaders_(headers, data) {
 /** 
  * Applies the transform function for each element in the data array, going through each column of each row.
  */
-function transformData_(data, options, transformFunc) {
+function transformData_(data, depths, options, transformFunc) {
   for (var i = 0; i < data.length; i++) {
     for (var j = 0; j < data[0].length; j++) {
-      transformFunc(data, i, j, options);
+      transformFunc(data, depths, i, j, options);
     }
   }
 }
@@ -492,12 +496,22 @@ function applyXPathRule_(rule, path, options) {
  *    rawHeaders:    Don't prettify headers
  *    debugLocation: Prepend each value with the row & column it belongs in
  */
-function defaultTransform_(data, row, column, options) {
+function defaultTransform_(data, depths, row, column, options) {
+  var depth = depths[row];
   if (data[row][column] == null) {
-    if (row < 2 || hasOption_(options, "noInherit")) {
+    if (row < 2 || depth < 1 || hasOption_(options, "noInherit")) {
       data[row][column] = "";
     } else {
-      data[row][column] = data[row-1][column];
+      var parentRow = row;
+      var parentDepth;
+      do {
+        parentRow--;
+        parentDepth = depths[parentRow];
+        if (parentDepth < depth) break;
+      } while (parentRow > 1);
+      if (parentRow > 0) {
+        data[row][column] = data[parentRow][column];
+      }
     }
   } 
 
