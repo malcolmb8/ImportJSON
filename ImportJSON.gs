@@ -114,7 +114,7 @@ function ImportJSON(url, query, parseOptions) {
  **/
 function ImportJSONViaPost(url, payload, fetchOptions, query, parseOptions) {
   var postOptions = parseToObject_(fetchOptions);
-  
+
   if (postOptions["method"] == null) {
     postOptions["method"] = "POST";
   }
@@ -131,7 +131,7 @@ function ImportJSONViaPost(url, payload, fetchOptions, query, parseOptions) {
   convertToBool_(postOptions, "useIntranet");
   convertToBool_(postOptions, "followRedirects");
   convertToBool_(postOptions, "muteHttpExceptions");
-  
+
   return ImportJSONAdvanced(url, postOptions, query, parseOptions, includeXPath_, defaultTransform_, defaultFilter_);
 }
 
@@ -171,7 +171,7 @@ function ImportJSONViaPost(url, payload, fetchOptions, query, parseOptions) {
 function ImportJSONFromSheet(sheetName, query, options) {
 
   var object = getDataFromNamedSheet_(sheetName);
-  
+
   return parseJSONObject_(object, query, options, includeXPath_, defaultTransform_, defaultFilter_);
 }
 
@@ -218,8 +218,8 @@ function ImportJSONFromSheet(sheetName, query, options) {
  **/
 function ImportJSONAdvanced(url, fetchOptions, query, parseOptions, includeFunc, transformFunc, filterFunc) {
   var jsondata = UrlFetchApp.fetch(url, fetchOptions);
-  var object   = JSON.parse(jsondata.getContentText());
-  
+  var object = JSON.parse(jsondata.getContentText());
+
   return parseJSONObject_(object, query, parseOptions, includeFunc, transformFunc, filterFunc);
 }
 
@@ -248,7 +248,7 @@ function ImportJSONAdvanced(url, fetchOptions, query, parseOptions, includeFunc,
  **/
 function ImportJSONBasicAuth(url, username, password, query, parseOptions) {
   var encodedAuthInformation = Utilities.base64Encode(username + ":" + password);
-  var header = {headers: {Authorization: "Basic " + encodedAuthInformation}};
+  var header = { headers: { Authorization: "Basic " + encodedAuthInformation } };
   return ImportJSONAdvanced(url, header, query, parseOptions, includeXPath_, defaultTransform_, defaultFilter_);
 }
 
@@ -260,7 +260,7 @@ function ImportJSONBasicAuth(url, username, password, query, parseOptions) {
  * @return the value encoded using URL percent-encoding
  */
 function URLEncode(value) {
-  return encodeURIComponent(value.toString());  
+  return encodeURIComponent(value.toString());
 }
 
 /**
@@ -291,27 +291,27 @@ function AddOAuthService__(name, accessTokenUrl, requestTokenUrl, authorizationU
   if (accessTokenUrl != null && accessTokenUrl.length > 0) {
     oAuthConfig.setAccessTokenUrl(accessTokenUrl);
   }
-  
+
   if (requestTokenUrl != null && requestTokenUrl.length > 0) {
     oAuthConfig.setRequestTokenUrl(requestTokenUrl);
   }
-  
+
   if (authorizationUrl != null && authorizationUrl.length > 0) {
     oAuthConfig.setAuthorizationUrl(authorizationUrl);
   }
-  
+
   if (consumerKey != null && consumerKey.length > 0) {
     oAuthConfig.setConsumerKey(consumerKey);
   }
-  
+
   if (consumerSecret != null && consumerSecret.length > 0) {
     oAuthConfig.setConsumerSecret(consumerSecret);
   }
-  
+
   if (method != null && method.length > 0) {
     oAuthConfig.setMethod(method);
   }
-  
+
   if (paramLocation != null && paramLocation.length > 0) {
     oAuthConfig.setParamLocation(paramLocation);
   }
@@ -322,31 +322,29 @@ function AddOAuthService__(name, accessTokenUrl, requestTokenUrl, authorizationU
  */
 function parseJSONObject_(object, query, options, includeFunc, transformFunc, filterFunc) {
   var headers = new Array();
-  var data    = new Array();
-  var depths  = new Array();
+  var data = new Array();
+  var depths = new Array();
 
   if (query && !Array.isArray(query) && query.toString().indexOf(",") != -1) {
     query = query.toString().split(",");
   }
 
   // Prepopulate the headers to lock in their order
-  if (hasOption_(options, "allHeaders") && Array.isArray(query))
-  {
-    for (var i = 0; i < query.length; i++)
-    {
+  if (hasOption_(options, "allHeaders") && Array.isArray(query)) {
+    for (var i = 0; i < query.length; i++) {
       headers[query[i]] = Object.keys(headers).length;
     }
   }
-  
+
   if (options) {
     options = options.toString().split(",");
   }
-  
-  parseData_(headers, data, depths, "", {rowIndex: 1, depth: 0}, object, query, options, includeFunc);
+
+  parseData_(headers, data, depths, "", { rowIndex: 1, depth: 0 }, object, query, options, includeFunc);
   parseHeaders_(headers, data);
   transformData_(data, depths, options, transformFunc);
   data = data.filter((e, i, arr) => filterFunc(data, depths, i, options))
-  
+
   return hasOption_(options, "noHeaders") ? (data.length > 1 ? data.slice(1) : new Array()) : data;
 }
 
@@ -386,30 +384,30 @@ function parseData_(headers, data, depths, path, state, value, query, options, i
   } else if (isObject_(value)) {
     for (key in value) {
       if (parseData_(headers, data, depths, path + "/" + key, state, value[key], query, options, includeFunc)) {
-        dataInserted = true; 
+        dataInserted = true;
       }
     }
   } else if (!includeFunc || includeFunc(query, path, options)) {
     // Handle arrays containing only scalar values
     if (Array.isArray(value)) {
-      value = value.join(); 
+      value = value.join();
     }
-    
+
     // Insert new row if one doesn't already exist
     if (!data[state.rowIndex]) {
       data[state.rowIndex] = new Array();
     }
-    
+
     // Add a new header if one doesn't exist
     if (!headers[path] && headers[path] != 0) {
       headers[path] = Object.keys(headers).length;
     }
-    
+
     // Insert the data
     data[state.rowIndex][headers[path]] = value;
     dataInserted = true;
   }
-  
+
   return dataInserted;
 }
 
@@ -448,9 +446,9 @@ function isObject_(test) {
 function isObjectArray_(test) {
   for (var i = 0; i < test.length; i++) {
     if (isObject_(test[i])) {
-      return true; 
+      return true;
     }
-  }  
+  }
 
   return false;
 }
@@ -460,25 +458,25 @@ function isObjectArray_(test) {
  */
 function includeXPath_(query, path, options) {
   if (!query) {
-    return true; 
+    return true;
   } else if (Array.isArray(query)) {
     for (var i = 0; i < query.length; i++) {
       if (applyXPathRule_(query[i], path, options)) {
-        return true; 
+        return true;
       }
-    }  
+    }
   } else {
     return applyXPathRule_(query, path, options);
   }
-  
-  return false; 
+
+  return false;
 };
 
 /** 
  * Returns true if the rule applies to the given path. 
  */
 function applyXPathRule_(rule, path, options) {
-  return path.indexOf(rule) == 0; 
+  return path.indexOf(rule) == 0;
 }
 
 /** 
@@ -514,16 +512,16 @@ function defaultTransform_(data, depths, row, column, options) {
         data[row][column] = data[parentRow][column];
       }
     }
-  } 
+  }
 
   if (!hasOption_(options, "rawHeaders") && row == 0) {
     if (column == 0 && data[row].length > 1) {
-      removeCommonPrefixes_(data, row);  
+      removeCommonPrefixes_(data, row);
     }
-    
+
     data[row][column] = toTitleCase_(data[row][column].toString().replace(/[\/\_]/g, " "));
   }
-  
+
   if (!hasOption_(options, "noTruncate") && data[row][column]) {
     data[row][column] = data[row][column].toString().substr(0, 256);
   }
@@ -549,13 +547,13 @@ function removeCommonPrefixes_(data, row) {
   var matchIndex = data[row][0].length;
 
   for (var i = 1; i < data[row].length; i++) {
-    matchIndex = findEqualityEndpoint_(data[row][i-1], data[row][i], matchIndex);
+    matchIndex = findEqualityEndpoint_(data[row][i - 1], data[row][i], matchIndex);
 
     if (matchIndex == 0) {
       return;
     }
   }
-  
+
   for (var i = 0; i < data[row].length; i++) {
     data[row][i] = data[row][i].substring(matchIndex, data[row][i].length);
   }
@@ -566,20 +564,20 @@ function removeCommonPrefixes_(data, row) {
  */
 function findEqualityEndpoint_(string1, string2, stopAt) {
   if (!string1 || !string2) {
-    return -1; 
+    return -1;
   }
-  
+
   var maxEndpoint = Math.min(stopAt, string1.length, string2.length);
-  
+
   for (var i = 0; i < maxEndpoint; i++) {
     if (string1.charAt(i) != string2.charAt(i)) {
       return i;
     }
   }
-  
+
   return maxEndpoint;
 }
-  
+
 
 /** 
  * Converts the text to title case.
@@ -588,8 +586,8 @@ function toTitleCase_(text) {
   if (text == null) {
     return null;
   }
-  
-  return text.replace(/\w\S*/g, function(word) { return word.charAt(0).toUpperCase() + word.substr(1).toLowerCase(); });
+
+  return text.replace(/\w\S*/g, function (word) { return word.charAt(0).toUpperCase() + word.substr(1).toLowerCase(); });
 }
 
 /** 
@@ -603,13 +601,13 @@ function hasOption_(options, option) {
  * Parses the given string into an object, trimming any leading or trailing spaces from the keys.
  */
 function parseToObject_(text) {
-  var map     = new Object();
+  var map = new Object();
   var entries = (text != null && text.trim().length > 0) ? text.toString().split(",") : new Array();
-  
+
   for (var i = 0; i < entries.length; i++) {
-    addToMap_(map, entries[i]);  
+    addToMap_(map, entries[i]);
   }
-  
+
   return map;
 }
 
@@ -617,10 +615,10 @@ function parseToObject_(text) {
  * Parses the given entry and adds it to the given map, trimming any leading or trailing spaces from the key.
  */
 function addToMap_(map, entry) {
-  var equalsIndex = entry.indexOf("=");  
-  var key         = (equalsIndex != -1) ? entry.substring(0, equalsIndex) : entry;
-  var value       = (key.length + 1 < entry.length) ? entry.substring(key.length + 1) : "";
-  
+  var equalsIndex = entry.indexOf("=");
+  var key = (equalsIndex != -1) ? entry.substring(0, equalsIndex) : entry;
+  var value = (key.length + 1 < entry.length) ? entry.substring(key.length + 1) : "";
+
   map[key.trim()] = value;
 }
 
@@ -637,20 +635,20 @@ function toBool_(value) {
 function convertToBool_(map, key) {
   if (map[key] != null) {
     map[key] = toBool_(map[key]);
-  }  
+  }
 }
 
 function getDataFromNamedSheet_(sheetName) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var source = ss.getSheetByName(sheetName);
-  
-  var jsonRange = source.getRange(1,1,source.getLastRow());
+
+  var jsonRange = source.getRange(1, 1, source.getLastRow());
   var jsonValues = jsonRange.getValues();
-  
+
   var jsonText = "";
   for (var row in jsonValues) {
     for (var col in jsonValues[row]) {
-      jsonText +=jsonValues[row][col];
+      jsonText += jsonValues[row][col];
     }
   }
   Logger.log(jsonText);
